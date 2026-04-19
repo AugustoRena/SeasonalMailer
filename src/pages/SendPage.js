@@ -44,6 +44,10 @@ const SendPage = ({ onLogout }) => {
     const invalid = emails.filter(e => !emailRegex.test(e));
     if (invalid.length > 0) { alert(`Emails inválidos: ${invalid.join(', ')}`); return; }
 
+    // Generate unique campaign ID for tracking
+    const campaignId = `camp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const siteUrl = window.location.origin;
+
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result.split(',')[1];
@@ -68,7 +72,9 @@ const SendPage = ({ onLogout }) => {
               subject,
               body,
               attachmentBase64: base64,
-              attachmentFilename: pdfFile.name
+              attachmentFilename: pdfFile.name,
+              campaignId,
+              siteUrl
             })
           });
 

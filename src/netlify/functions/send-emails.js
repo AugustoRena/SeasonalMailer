@@ -1,7 +1,3 @@
-// Sends a single batch of emails (up to 2 at a time).
-// The frontend calls this repeatedly, one batch per request,
-// so each call stays well under Netlify's 26s timeout.
-
 import nodemailer from 'nodemailer';
 
 const getMimeType = (filename) => {
@@ -20,6 +16,17 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
+const injectTrackingPixel = (htmlBody, email, campaignId, baseUrl) => {
+  const encodedEmail = encodeURIComponent(email);
+  const encodedCampaign = encodeURIComponent(campaignId);
+  const pixelUrl = `${baseUrl}/.netlify/functions/track-open?email=${encodedEmail}&campaign=${encodedCampaign}`;
+  const pixel = `<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />`;
+  // Inject before </body> if present, otherwise append
+  return htmlBody.includes('</body>')
+    ? htmlBody.replace('</body>', `${pixel}</body>`)
+    : htmlBody + pixel;
 };
 
 export const handler = async (event) => {
@@ -48,8 +55,7 @@ export const handler = async (event) => {
     return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Body inválido' }) };
   }
 
-  const { batch, subject, body, attachmentBase64, attachmentFilename } = parsed;
-  // batch = array of email strings for this call (max 2)
+  const { batch, subject, body, attachmentBase64, attachmentFilename, campaignId, siteUrl } = parsed;
 
   if (!batch || !Array.isArray(batch) || batch.length === 0 || !subject || !body) {
     return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Campos obrigatórios faltando' }) };
@@ -69,11 +75,18 @@ export const handler = async (event) => {
   for (let i = 0; i < batch.length; i++) {
     const recipient = batch[i];
     try {
+      let htmlBody = body.replace(/\n/g, '<br>');
+
+      // Inject tracking pixel if campaign tracking is enabled
+      if (campaignId && siteUrl) {
+        htmlBody = injectTrackingPixel(htmlBody, recipient, campaignId, siteUrl);
+      }
+
       const mailOptions = {
         from: gmailUser,
         to: recipient,
         subject,
-        html: body.replace(/\n/g, '<br>')
+        html: htmlBody
       };
 
       if (attachmentBase64 && attachmentFilename) {
@@ -90,7 +103,6 @@ export const handler = async (event) => {
       results.push({ email: recipient, status: 'erro', error: err.message, timestamp: new Date().toISOString() });
     }
 
-    // 10s delay between emails within the batch, but not after the last one
     if (i < batch.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 10000));
     }
