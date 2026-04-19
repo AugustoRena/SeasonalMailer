@@ -10,6 +10,7 @@ const SendPage = ({ onLogout }) => {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [currentPage, setCurrentPage] = useState('form');
+  const [progressData, setProgressData] = useState(null);
   const [resultsData, setResultsData] = useState(null);
 
   const handleFileChange = (e) => {
@@ -21,7 +22,6 @@ const SendPage = ({ onLogout }) => {
       return;
     }
 
-    // Validate file size before upload
     if (file.size > MAX_PDF_BYTES) {
       alert(`O arquivo é muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). O limite é 4 MB.`);
       e.target.value = '';
@@ -39,10 +39,7 @@ const SendPage = ({ onLogout }) => {
       return;
     }
 
-    const emails = recipientEmails
-      .split(';')
-      .map(e => e.trim())
-      .filter(e => e.length > 0);
+    const emails = recipientEmails.split(';').map(e => e.trim()).filter(e => e.length > 0);
 
     if (emails.length === 0) {
       alert('Adicione pelo menos um email');
@@ -61,16 +58,17 @@ const SendPage = ({ onLogout }) => {
       const base64 = reader.result.split(',')[1];
 
       setCurrentPage('progress');
+      setProgressData({ total: emails.length, current: 0, sent: 0, failed: 0 });
 
       try {
-        const response = await fetch('/.netlify/functions/send-emails', {
+        // Start background job — returns 202 + jobId immediately, no timeout risk
+        const response = await fetch('/.netlify/functions/send-emails-background', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // No credentials sent — they live in Netlify env vars
             recipients: recipientEmails,
-            subject: subject,
-            body: body,
+            subject,
+            body,
             attachmentBase64: base64,
             attachmentFilename: pdfFile.name
           })
@@ -78,18 +76,41 @@ const SendPage = ({ onLogout }) => {
 
         const data = await response.json();
 
-        if (response.ok) {
-          setResultsData({
-            success: true,
-            message: data.message,
-            summary: data.summary,
-            results: data.results
-          });
-          setCurrentPage('results');
-        } else {
-          alert('Erro ao enviar emails: ' + data.error);
+        if (!response.ok) {
+          alert('Erro ao iniciar envio: ' + data.error);
           setCurrentPage('form');
+          return;
         }
+
+        // Poll every 3s for real progress from the server
+        const jobId = data.jobId;
+        const poll = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`/.netlify/functions/job-status?jobId=${jobId}`);
+            const job = await statusRes.json();
+
+            setProgressData({
+              total: job.total,
+              current: job.current,
+              sent: job.sent,
+              failed: job.failed
+            });
+
+            if (job.status === 'done') {
+              clearInterval(poll);
+              setResultsData({
+                success: true,
+                message: `Campanha concluída. ${job.sent} enviados, ${job.failed} com erro.`,
+                summary: { total: job.total, sent: job.sent, failed: job.failed },
+                results: job.results
+              });
+              setCurrentPage('results');
+            }
+          } catch {
+            // Transient polling error — keep trying
+          }
+        }, 3000);
+
       } catch (error) {
         console.error('Erro:', error);
         alert('Erro ao conectar com o servidor');
@@ -103,6 +124,7 @@ const SendPage = ({ onLogout }) => {
   if (currentPage === 'progress') {
     return (
       <ProgressPage
+        progressData={progressData}
         totalEmails={recipientEmails.split(';').filter(e => e.trim()).length}
       />
     );
@@ -176,7 +198,6 @@ const SendPage = ({ onLogout }) => {
 
           <div className="form-section">
             <div className="section-title">✉️ Conteúdo do Email</div>
-
             <div className="form-grid">
               <div>
                 <label className="form-label">Assunto</label>
