@@ -18,56 +18,41 @@ export const handler = async (event) => {
       };
     }
 
-    // Configuração específica para BOL (@bol.com.br)
+    // Criar transportador
     const transporter = nodemailer.createTransport({
-      host: 'smtps.bol.com.br',     // Servidor oficial do BOL
-      port: 465,                    // Porta com SSL (mais estável)
-      secure: true,                 // true porque é porta 465 (SSL/TLS implícito)
+      service: 'gmail',
       auth: {
-        user: email,                // deve ser seuemail@bol.com.br
-        pass: password       // remove espaços acidentais
-      },
-      tls: {
-        rejectUnauthorized: false   // ajuda em ambientes serverless como Netlify
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000
+        user: email,
+        pass: password
+      }
     });
 
-    // Testa a conexão
+    // Verificar conexão
     await transporter.verify();
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
+      body: JSON.stringify({ 
         success: true,
-        message: 'Conexão com BOL realizada com sucesso!'
+        message: 'Conexão com sucesso! Email configurado corretamente.' 
       })
     };
-
   } catch (error) {
-    console.error('Erro completo ao testar SMTP BOL:', error);
-
-    const errMsg = (error.message || '').toLowerCase();
-    let errorMessage = 'Erro ao conectar com o servidor SMTP do BOL.';
-
-    if (errMsg.includes('authentication') || errMsg.includes('login') || errMsg.includes('535') || errMsg.includes('auth')) {
-      errorMessage = 'Email ou senha incorretos. Verifique suas credenciais do BOL.';
-    } 
-    else if (errMsg.includes('getaddrinfo') || errMsg.includes('enotfound') || errMsg.includes('etimedout') || errMsg.includes('econnrefused')) {
-      errorMessage = 'Não foi possível conectar ao servidor do BOL. Isso pode ocorrer em ambientes serverless (Netlify). Tente novamente ou use a porta 587.';
-    } 
-    else if (errMsg.includes('certificate') || errMsg.includes('tls')) {
-      errorMessage = 'Erro de certificado. Tente novamente.';
+    console.error('Erro ao testar conexão:', error);
+    
+    let errorMessage = 'Erro ao conectar com o servidor SMTP';
+    
+    if (error.message.includes('Invalid login')) {
+      errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
+    } else if (error.message.includes('getaddrinfo')) {
+      errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
     }
 
     return {
-      statusCode: 400,
-      body: JSON.stringify({
+      statusCode: 401,
+      body: JSON.stringify({ 
         error: errorMessage,
-        details: error.message,
-        code: error.code
+        details: error.message
       })
     };
   }
