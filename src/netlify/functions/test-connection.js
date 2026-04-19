@@ -21,8 +21,8 @@ export const handler = async (event) => {
     // Configuração mais explícita e confiável para Gmail
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,                    // ← use 587 com STARTTLS (mais estável)
-      secure: false,                // false para 587, true para 465
+      port: 465,                    // ← use 587 com STARTTLS (mais estável)
+      secure: true,                // false para 587, true para 465
       auth: {
         user: email,
         pass: password       // remove espaços acidentais
