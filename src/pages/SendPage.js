@@ -53,12 +53,11 @@ const SendPage = ({ onLogout }) => {
       setProgressData({ total, current: 0, sent: 0, failed: 0 });
 
       const allResults = [];
-      let sent = 0;
-      let failed = 0;
 
       // Split into batches of BATCH_SIZE and call the function once per batch
       for (let i = 0; i < emails.length; i += BATCH_SIZE) {
         const batch = emails.slice(i, i + BATCH_SIZE);
+        const ts = new Date().toISOString();
 
         try {
           const response = await fetch('/.netlify/functions/send-emails', {
@@ -76,37 +75,28 @@ const SendPage = ({ onLogout }) => {
           const data = await response.json();
 
           if (!response.ok) {
-            // Mark entire batch as failed if the function itself errored
-            batch.forEach(email => {
-              allResults.push({ email, status: 'erro', error: data.error, timestamp: new Date().toISOString() });
-              failed++;
-            });
+            const errorMsg = data.error || 'Erro desconhecido';
+            batch.forEach(email => allResults.push({ email, status: 'erro', error: errorMsg, timestamp: ts }));
           } else {
-            data.results.forEach(r => {
-              allResults.push(r);
-              if (r.status === 'enviado') sent++; else failed++;
-            });
+            data.results.forEach(r => allResults.push(r));
           }
-        } catch (err) {
-          batch.forEach(email => {
-            allResults.push({ email, status: 'erro', error: 'Falha de conexão', timestamp: new Date().toISOString() });
-            failed++;
-          });
+        } catch (_err) {
+          batch.forEach(email => allResults.push({ email, status: 'erro', error: 'Falha de conexão', timestamp: ts }));
         }
 
-        // Update progress after each batch
-        setProgressData({
-          total,
-          current: Math.min(i + BATCH_SIZE, total),
-          sent,
-          failed
-        });
+        // Compute counters from allResults — no mutable vars inside loop callbacks
+        const batchSent = allResults.filter(r => r.status === 'enviado').length;
+        const batchFailed = allResults.filter(r => r.status === 'erro').length;
+        setProgressData({ total, current: Math.min(i + BATCH_SIZE, total), sent: batchSent, failed: batchFailed });
       }
+
+      const finalSent = allResults.filter(r => r.status === 'enviado').length;
+      const finalFailed = allResults.filter(r => r.status === 'erro').length;
 
       setResultsData({
         success: true,
-        message: `Campanha concluída. ${sent} enviados, ${failed} com erro.`,
-        summary: { total, sent, failed },
+        message: `Campanha concluída. ${finalSent} enviados, ${finalFailed} com erro.`,
+        summary: { total, sent: finalSent, failed: finalFailed },
         results: allResults
       });
       setCurrentPage('results');
