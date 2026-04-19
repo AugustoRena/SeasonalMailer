@@ -25,7 +25,7 @@ export const handler = async (event) => {
       secure: false,                // false para 587, true para 465
       auth: {
         user: email,
-        pass: password.trim()       // remove espaços acidentais
+        pass: password       // remove espaços acidentais
       },
       tls: {
         rejectUnauthorized: false   // ajuda em alguns ambientes serverless
