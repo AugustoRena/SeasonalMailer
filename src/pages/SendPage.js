@@ -3,6 +3,7 @@ import ProgressPage from './ProgressPage';
 import ResultsPage from './ResultsPage';
 
 const MAX_PDF_BYTES = 4 * 1024 * 1024; // 4 MB
+const BATCH_SIZE = 2; // max emails per request — keeps each call under 26s timeout
 
 const SendPage = ({ onLogout }) => {
   const [pdfFile, setPdfFile] = useState(null);
@@ -16,18 +17,15 @@ const SendPage = ({ onLogout }) => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (file.type !== 'application/pdf') {
       alert('Por favor, selecione um arquivo PDF válido');
       return;
     }
-
     if (file.size > MAX_PDF_BYTES) {
-      alert(`O arquivo é muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). O limite é 4 MB.`);
+      alert(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 4 MB.`);
       e.target.value = '';
       return;
     }
-
     setPdfFile(file);
   };
 
@@ -40,94 +38,85 @@ const SendPage = ({ onLogout }) => {
     }
 
     const emails = recipientEmails.split(';').map(e => e.trim()).filter(e => e.length > 0);
-
-    if (emails.length === 0) {
-      alert('Adicione pelo menos um email');
-      return;
-    }
+    if (emails.length === 0) { alert('Adicione pelo menos um email'); return; }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emails.filter(e => !emailRegex.test(e));
-    if (invalidEmails.length > 0) {
-      alert(`Emails inválidos: ${invalidEmails.join(', ')}`);
-      return;
-    }
+    const invalid = emails.filter(e => !emailRegex.test(e));
+    if (invalid.length > 0) { alert(`Emails inválidos: ${invalid.join(', ')}`); return; }
 
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result.split(',')[1];
+      const total = emails.length;
 
       setCurrentPage('progress');
-      setProgressData({ total: emails.length, current: 0, sent: 0, failed: 0 });
+      setProgressData({ total, current: 0, sent: 0, failed: 0 });
 
-      try {
-        // Start background job — returns 202 + jobId immediately, no timeout risk
-        const response = await fetch('/.netlify/functions/send-emails-background', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipients: recipientEmails,
-            subject,
-            body,
-            attachmentBase64: base64,
-            attachmentFilename: pdfFile.name
-          })
-        });
+      const allResults = [];
+      let sent = 0;
+      let failed = 0;
 
-        const data = await response.json();
+      // Split into batches of BATCH_SIZE and call the function once per batch
+      for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+        const batch = emails.slice(i, i + BATCH_SIZE);
 
-        if (!response.ok) {
-          alert('Erro ao iniciar envio: ' + data.error);
-          setCurrentPage('form');
-          return;
+        try {
+          const response = await fetch('/.netlify/functions/send-emails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              batch,
+              subject,
+              body,
+              attachmentBase64: base64,
+              attachmentFilename: pdfFile.name
+            })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            // Mark entire batch as failed if the function itself errored
+            batch.forEach(email => {
+              allResults.push({ email, status: 'erro', error: data.error, timestamp: new Date().toISOString() });
+              failed++;
+            });
+          } else {
+            data.results.forEach(r => {
+              allResults.push(r);
+              if (r.status === 'enviado') sent++; else failed++;
+            });
+          }
+        } catch (err) {
+          batch.forEach(email => {
+            allResults.push({ email, status: 'erro', error: 'Falha de conexão', timestamp: new Date().toISOString() });
+            failed++;
+          });
         }
 
-        // Poll every 3s for real progress from the server
-        const jobId = data.jobId;
-        const poll = setInterval(async () => {
-          try {
-            const statusRes = await fetch(`/.netlify/functions/job-status?jobId=${jobId}`);
-            const job = await statusRes.json();
-
-            setProgressData({
-              total: job.total,
-              current: job.current,
-              sent: job.sent,
-              failed: job.failed
-            });
-
-            if (job.status === 'done') {
-              clearInterval(poll);
-              setResultsData({
-                success: true,
-                message: `Campanha concluída. ${job.sent} enviados, ${job.failed} com erro.`,
-                summary: { total: job.total, sent: job.sent, failed: job.failed },
-                results: job.results
-              });
-              setCurrentPage('results');
-            }
-          } catch {
-            // Transient polling error — keep trying
-          }
-        }, 3000);
-
-      } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro ao conectar com o servidor');
-        setCurrentPage('form');
+        // Update progress after each batch
+        setProgressData({
+          total,
+          current: Math.min(i + BATCH_SIZE, total),
+          sent,
+          failed
+        });
       }
+
+      setResultsData({
+        success: true,
+        message: `Campanha concluída. ${sent} enviados, ${failed} com erro.`,
+        summary: { total, sent, failed },
+        results: allResults
+      });
+      setCurrentPage('results');
     };
 
     reader.readAsDataURL(pdfFile);
   };
 
   if (currentPage === 'progress') {
-    return (
-      <ProgressPage
-        progressData={progressData}
-        totalEmails={recipientEmails.split(';').filter(e => e.trim()).length}
-      />
-    );
+    return <ProgressPage progressData={progressData} />;
   }
 
   if (currentPage === 'results') {
@@ -151,9 +140,7 @@ const SendPage = ({ onLogout }) => {
         <div className="header-left">
           <h1>Enviar Emails em Massa</h1>
         </div>
-        <button className="button-logout" onClick={onLogout}>
-          Sair
-        </button>
+        <button className="button-logout" onClick={onLogout}>Sair</button>
       </div>
 
       <div className="send-card">
@@ -161,21 +148,11 @@ const SendPage = ({ onLogout }) => {
           <div className="form-section">
             <div className="section-title">📎 Anexar Currículo (PDF)</div>
             <div className="file-upload">
-              <input
-                type="file"
-                id="pdf-input"
-                className="file-input"
-                accept=".pdf"
-                onChange={handleFileChange}
-              />
+              <input type="file" id="pdf-input" className="file-input" accept=".pdf" onChange={handleFileChange} />
               <label htmlFor="pdf-input" className="file-upload-label">
                 <span className="file-upload-icon">📄</span>
-                <span className="file-upload-text">
-                  Clique para selecionar seu PDF (máx. 4 MB)
-                </span>
-                {pdfFile && (
-                  <span className="file-name">✓ {pdfFile.name} ({(pdfFile.size / 1024).toFixed(0)} KB)</span>
-                )}
+                <span className="file-upload-text">Clique para selecionar seu PDF (máx. 4 MB)</span>
+                {pdfFile && <span className="file-name">✓ {pdfFile.name} ({(pdfFile.size / 1024).toFixed(0)} KB)</span>}
               </label>
             </div>
           </div>
@@ -202,24 +179,18 @@ const SendPage = ({ onLogout }) => {
               <div>
                 <label className="form-label">Assunto</label>
                 <input
-                  type="text"
-                  className="form-input"
+                  type="text" className="form-input"
                   placeholder="Ex: Candidatura - Vaga de Desenvolvedor"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  maxLength={100}
+                  value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={100}
                 />
                 <div className="char-count">{subject.length}/100</div>
               </div>
             </div>
-
             <div className="form-group">
               <label className="form-label">Corpo do Email</label>
               <textarea
-                className="textarea"
-                placeholder="Digite o conteúdo do seu email aqui..."
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
+                className="textarea" placeholder="Digite o conteúdo do seu email aqui..."
+                value={body} onChange={(e) => setBody(e.target.value)}
                 style={{ minHeight: '200px' }}
               />
               <div className="char-count">{body.length} caracteres</div>
@@ -227,8 +198,9 @@ const SendPage = ({ onLogout }) => {
           </div>
 
           <button type="submit" className="button button-send">
-            🚀 Enviar {recipientEmails.split(';').filter(e => e.trim()).length > 0 &&
-              `para ${recipientEmails.split(';').filter(e => e.trim()).length} email(s)`}
+            🚀 Enviar {emails => emails > 0 && `para ${emails} email(s)`}
+            {recipientEmails.split(';').filter(e => e.trim()).length > 0 &&
+              ` para ${recipientEmails.split(';').filter(e => e.trim()).length} email(s)`}
           </button>
         </form>
       </div>

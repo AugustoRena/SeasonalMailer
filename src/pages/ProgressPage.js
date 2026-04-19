@@ -1,14 +1,13 @@
 import React from 'react';
 
-const ProgressPage = ({ progressData, totalEmails }) => {
-  const total = progressData?.total || totalEmails || 1;
+const ProgressPage = ({ progressData }) => {
+  const total = progressData?.total || 1;
   const current = progressData?.current || 0;
   const sent = progressData?.sent || 0;
   const failed = progressData?.failed || 0;
   const remaining = total - current;
+  const progress = current > 0 ? Math.min(Math.round((current / total) * 100), 99) : 0;
 
-  // Progress caps at 99% — 100% only when results screen appears
-  const progress = current > 0 ? Math.min((current / total) * 100, 99) : 0;
   const estimatedSecondsLeft = remaining * 10;
   const minutes = Math.floor(estimatedSecondsLeft / 60);
   const seconds = estimatedSecondsLeft % 60;
@@ -16,9 +15,7 @@ const ProgressPage = ({ progressData, totalEmails }) => {
     ? 'Iniciando...'
     : remaining === 0
       ? 'Finalizando...'
-      : minutes > 0
-        ? `~${minutes}min ${seconds}s restantes`
-        : `~${seconds}s restantes`;
+      : minutes > 0 ? `~${minutes}min ${seconds}s restantes` : `~${seconds}s restantes`;
 
   return (
     <div className="send-page">
@@ -49,7 +46,7 @@ const ProgressPage = ({ progressData, totalEmails }) => {
         </div>
 
         <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '20px', textAlign: 'center' }}>
-          ⏱️ Progresso atualizado a cada 3 segundos diretamente do servidor.
+          ⏱️ Enviando em lotes — progresso atualizado a cada 2 emails.
         </p>
       </div>
     </div>
