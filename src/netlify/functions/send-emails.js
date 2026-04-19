@@ -1,5 +1,16 @@
 import nodemailer from 'nodemailer';
-import mime from 'mime-types';
+
+const getMimeType = (filename) => {
+  const ext = filename.split('.').pop().toLowerCase();
+  const types = {
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+    txt: 'text/plain', zip: 'application/zip'
+  };
+  return types[ext] || 'application/octet-stream';
+};
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -87,7 +98,7 @@ export const handler = async (event) => {
 
         if (attachmentBase64 && attachmentFilename) {
           // Resolve MIME type dynamically — no longer hardcoded to application/pdf
-          const detectedType = mime.lookup(attachmentFilename) || 'application/octet-stream';
+          const detectedType = getMimeType(attachmentFilename);
           mailOptions.attachments = [
             {
               filename: attachmentFilename,

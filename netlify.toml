@@ -1,8 +1,8 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
+  functions = "src/netlify/functions"
   publish = "build"
 
 [dev]
-  functions = "netlify/functions"
+  functions = "src/netlify/functions"
   command = "npm start"
