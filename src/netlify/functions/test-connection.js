@@ -14,22 +14,25 @@ export const handler = async (event) => {
     if (!email || !password) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Email e senha (App Password) são obrigatórios' })
+        body: JSON.stringify({ error: 'Email e senha são obrigatórios' })
       };
     }
 
-    // Configuração mais explícita e confiável para Gmail
+    // Configuração específica para BOL (@bol.com.br)
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,                    // ← use 587 com STARTTLS (mais estável)
-      secure: true,                // false para 587, true para 465
+      host: 'smtps.bol.com.br',     // Servidor oficial do BOL
+      port: 465,                    // Porta com SSL (mais estável)
+      secure: true,                 // true porque é porta 465 (SSL/TLS implícito)
       auth: {
-        user: email,
+        user: email,                // deve ser seuemail@bol.com.br
         pass: password       // remove espaços acidentais
       },
       tls: {
-        rejectUnauthorized: false   // ajuda em alguns ambientes serverless
-      }
+        rejectUnauthorized: false   // ajuda em ambientes serverless como Netlify
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
 
     // Testa a conexão
@@ -39,25 +42,24 @@ export const handler = async (event) => {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
-        message: 'Conexão com sucesso! SMTP configurado corretamente.'
+        message: 'Conexão com BOL realizada com sucesso!'
       })
     };
 
   } catch (error) {
-    console.error('Erro completo ao testar SMTP:', error);
+    console.error('Erro completo ao testar SMTP BOL:', error);
 
-    let errorMessage = 'Erro ao conectar com o servidor SMTP.';
+    const errMsg = (error.message || '').toLowerCase();
+    let errorMessage = 'Erro ao conectar com o servidor SMTP do BOL.';
 
-    const errMsg = error.message.toLowerCase();
-
-    if (errMsg.includes('invalid login') || errMsg.includes('535') || errMsg.includes('auth')) {
-      errorMessage = 'Email ou App Password incorretos. Verifique suas credenciais do Gmail.';
+    if (errMsg.includes('authentication') || errMsg.includes('login') || errMsg.includes('535') || errMsg.includes('auth')) {
+      errorMessage = 'Email ou senha incorretos. Verifique suas credenciais do BOL.';
     } 
-    else if (errMsg.includes('getaddrinfo') || errMsg.includes('enotfound') || errMsg.includes('etimedout')) {
-      errorMessage = 'Não foi possível conectar ao servidor do Gmail. Isso costuma acontecer em ambientes serverless (Netlify, Vercel, etc.).';
+    else if (errMsg.includes('getaddrinfo') || errMsg.includes('enotfound') || errMsg.includes('etimedout') || errMsg.includes('econnrefused')) {
+      errorMessage = 'Não foi possível conectar ao servidor do BOL. Isso pode ocorrer em ambientes serverless (Netlify). Tente novamente ou use a porta 587.';
     } 
-    else if (errMsg.includes('ECONNREFUSED')) {
-      errorMessage = 'Conexão recusada. Verifique porta e configurações.';
+    else if (errMsg.includes('certificate') || errMsg.includes('tls')) {
+      errorMessage = 'Erro de certificado. Tente novamente.';
     }
 
     return {
