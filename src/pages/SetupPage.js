@@ -53,7 +53,7 @@ const SetupPage = ({ onSetupComplete }) => {
           <span className="setup-icon">📧</span>
           <h1 className="setup-title">Configuração de Email</h1>
           <p className="setup-subtitle">
-            Configure suas credenciais do Gmail para começar a enviar emails em massa
+            Configure suas credenciais do Bol para começar a enviar emails em massa
           </p>
         </div>
 
@@ -66,11 +66,11 @@ const SetupPage = ({ onSetupComplete }) => {
 
         <form onSubmit={handleTestConnection}>
           <div className="form-group">
-            <label className="form-label">Email Gmail</label>
+            <label className="form-label">Email Bol</label>
             <input
               type="email"
               className="form-input"
-              placeholder="seu-email@gmail.com"
+              placeholder="seu-email@bol.com.br"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
@@ -78,7 +78,7 @@ const SetupPage = ({ onSetupComplete }) => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Senha de App do Gmail</label>
+            <label className="form-label">Senha de App do Bol</label>
             <input
               type="password"
               className="form-input"
@@ -93,15 +93,6 @@ const SetupPage = ({ onSetupComplete }) => {
               marginTop: '8px',
               lineHeight: '1.4'
             }}>
-              💡 Não tem uma senha de app? Vá para{' '}
-              <a 
-                href="https://myaccount.google.com/apppasswords" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ color: '#2563eb', textDecoration: 'none' }}
-              >
-                myaccount.google.com/apppasswords
-              </a>
             </p>
           </div>
 
