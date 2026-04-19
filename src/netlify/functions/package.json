@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "nodemailer": "^6.9.9"
+    "nodemailer": "^6.9.9",
+    "@netlify/blobs": "^8.1.0"
   }
 }

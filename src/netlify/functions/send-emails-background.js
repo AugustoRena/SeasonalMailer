@@ -1,8 +1,5 @@
-// Netlify Background Function — timeout de 15 minutos (vs 26s das funções normais)
-// O nome DEVE terminar em "-background" para o Netlify reconhecer como background function.
-// Retorna 202 imediatamente; o frontend consulta o progresso via /job-status.
-
 import nodemailer from 'nodemailer';
+import { getStore } from '@netlify/blobs';
 
 const getMimeType = (filename) => {
   const ext = filename.split('.').pop().toLowerCase();
@@ -21,10 +18,6 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
-
-// In-memory job store — persists for the lifetime of the function instance.
-// For multi-instance deploys, replace with KV store (Netlify Blobs, Upstash, etc.)
-export const jobs = {};
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -64,9 +57,10 @@ export const handler = async (event) => {
 
   const emailList = recipients.split(';').map(e => e.trim()).filter(e => e.length > 0);
   const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const store = getStore('email-jobs');
 
-  // Register job immediately so polling can find it
-  jobs[jobId] = {
+  // Persist initial job state to Netlify Blobs so job-status can read it
+  const initialState = {
     status: 'running',
     total: emailList.length,
     sent: 0,
@@ -74,17 +68,20 @@ export const handler = async (event) => {
     current: 0,
     results: []
   };
+  await store.setJSON(jobId, initialState);
 
-  // Run sends asynchronously — background functions keep running after the 202 response
+  // Run sends — background function keeps running after 202 response
   (async () => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: gmailUser, pass: gmailPass }
     });
 
+    const state = { ...initialState };
+
     for (let i = 0; i < emailList.length; i++) {
       const recipient = emailList[i];
-      jobs[jobId].current = i + 1;
+      state.current = i + 1;
 
       try {
         const mailOptions = {
@@ -103,22 +100,25 @@ export const handler = async (event) => {
         }
 
         await transporter.sendMail(mailOptions);
-        jobs[jobId].sent++;
-        jobs[jobId].results.push({ email: recipient, status: 'enviado', timestamp: new Date().toISOString() });
+        state.sent++;
+        state.results.push({ email: recipient, status: 'enviado', timestamp: new Date().toISOString() });
       } catch (err) {
-        jobs[jobId].failed++;
-        jobs[jobId].results.push({ email: recipient, status: 'erro', error: err.message, timestamp: new Date().toISOString() });
+        state.failed++;
+        state.results.push({ email: recipient, status: 'erro', error: err.message, timestamp: new Date().toISOString() });
       }
+
+      // Write progress to Blobs after each email so polling reflects real state
+      await store.setJSON(jobId, { ...state });
 
       if (i < emailList.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 10000));
       }
     }
 
-    jobs[jobId].status = 'done';
+    state.status = 'done';
+    await store.setJSON(jobId, { ...state });
   })();
 
-  // Return 202 immediately — frontend polls /job-status?jobId=...
   return {
     statusCode: 202,
     headers: CORS_HEADERS,

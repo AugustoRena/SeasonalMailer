@@ -1,5 +1,4 @@
-// Polling endpoint — frontend calls this every 3s to get real progress
-import { jobs } from './send-emails-background.js';
+import { getStore } from '@netlify/blobs';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +17,8 @@ export const handler = async (event) => {
     return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'jobId obrigatório' }) };
   }
 
-  const job = jobs[jobId];
+  const store = getStore('email-jobs');
+  const job = await store.get(jobId, { type: 'json' });
 
   if (!job) {
     return { statusCode: 404, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Job não encontrado' }) };
