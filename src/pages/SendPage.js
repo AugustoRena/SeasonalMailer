@@ -2,22 +2,33 @@ import React, { useState } from 'react';
 import ProgressPage from './ProgressPage';
 import ResultsPage from './ResultsPage';
 
-const SendPage = ({ credentials, onLogout }) => {
+const MAX_PDF_BYTES = 4 * 1024 * 1024; // 4 MB
+
+const SendPage = ({ onLogout }) => {
   const [pdfFile, setPdfFile] = useState(null);
   const [recipientEmails, setRecipientEmails] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [currentPage, setCurrentPage] = useState('form');
-  const [progressData, setProgressData] = useState(null);
   const [resultsData, setResultsData] = useState(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setPdfFile(file);
-    } else {
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
       alert('Por favor, selecione um arquivo PDF válido');
+      return;
     }
+
+    // Validate file size before upload
+    if (file.size > MAX_PDF_BYTES) {
+      alert(`O arquivo é muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). O limite é 4 MB.`);
+      e.target.value = '';
+      return;
+    }
+
+    setPdfFile(file);
   };
 
   const handleSendEmails = async (e) => {
@@ -28,7 +39,6 @@ const SendPage = ({ credentials, onLogout }) => {
       return;
     }
 
-    // Validar emails
     const emails = recipientEmails
       .split(';')
       .map(e => e.trim())
@@ -39,7 +49,6 @@ const SendPage = ({ credentials, onLogout }) => {
       return;
     }
 
-    // Validar formato de emails
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const invalidEmails = emails.filter(e => !emailRegex.test(e));
     if (invalidEmails.length > 0) {
@@ -47,29 +56,18 @@ const SendPage = ({ credentials, onLogout }) => {
       return;
     }
 
-    // Converter PDF para Base64
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result.split(',')[1];
 
       setCurrentPage('progress');
-      setProgressData({
-        total: emails.length,
-        current: 0,
-        sent: 0,
-        failed: 0,
-        currentEmail: emails[0]
-      });
 
       try {
         const response = await fetch('/.netlify/functions/send-emails', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: credentials.email,
-            password: credentials.password,
+            // No credentials sent — they live in Netlify env vars
             recipients: recipientEmails,
             subject: subject,
             body: body,
@@ -104,8 +102,7 @@ const SendPage = ({ credentials, onLogout }) => {
 
   if (currentPage === 'progress') {
     return (
-      <ProgressPage 
-        progressData={progressData} 
+      <ProgressPage
         totalEmails={recipientEmails.split(';').filter(e => e.trim()).length}
       />
     );
@@ -131,7 +128,6 @@ const SendPage = ({ credentials, onLogout }) => {
       <div className="send-header">
         <div className="header-left">
           <h1>Enviar Emails em Massa</h1>
-          <p>Configurado: {credentials.email}</p>
         </div>
         <button className="button-logout" onClick={onLogout}>
           Sair
@@ -140,7 +136,6 @@ const SendPage = ({ credentials, onLogout }) => {
 
       <div className="send-card">
         <form onSubmit={handleSendEmails}>
-          {/* Seção do PDF */}
           <div className="form-section">
             <div className="section-title">📎 Anexar Currículo (PDF)</div>
             <div className="file-upload">
@@ -154,16 +149,15 @@ const SendPage = ({ credentials, onLogout }) => {
               <label htmlFor="pdf-input" className="file-upload-label">
                 <span className="file-upload-icon">📄</span>
                 <span className="file-upload-text">
-                  Clique para selecionar seu PDF
+                  Clique para selecionar seu PDF (máx. 4 MB)
                 </span>
                 {pdfFile && (
-                  <span className="file-name">✓ {pdfFile.name}</span>
+                  <span className="file-name">✓ {pdfFile.name} ({(pdfFile.size / 1024).toFixed(0)} KB)</span>
                 )}
               </label>
             </div>
           </div>
 
-          {/* Seção de Destinatários */}
           <div className="form-section">
             <div className="section-title">👥 Lista de Destinatários</div>
             <div className="form-group">
@@ -180,7 +174,6 @@ const SendPage = ({ credentials, onLogout }) => {
             </div>
           </div>
 
-          {/* Seção do Email */}
           <div className="form-section">
             <div className="section-title">✉️ Conteúdo do Email</div>
 
@@ -213,7 +206,7 @@ const SendPage = ({ credentials, onLogout }) => {
           </div>
 
           <button type="submit" className="button button-send">
-            🚀 Enviar {recipientEmails.split(';').filter(e => e.trim()).length > 0 && 
+            🚀 Enviar {recipientEmails.split(';').filter(e => e.trim()).length > 0 &&
               `para ${recipientEmails.split(';').filter(e => e.trim()).length} email(s)`}
           </button>
         </form>

@@ -1,73 +1,60 @@
 import React, { useState, useEffect } from 'react';
 
 const ProgressPage = ({ totalEmails }) => {
-  const [progress, setProgress] = useState(0);
-  const [sent, setSent] = useState(0);
-  const [failed, setFailed] = useState(0);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const estimatedSeconds = totalEmails * 10;
 
   useEffect(() => {
-    // Simular progresso (já que o backend envia de forma async)
     const interval = setInterval(() => {
-      setCurrentIndex(prev => {
-        const next = prev + 1;
-        if (next > totalEmails) {
+      setElapsed(prev => {
+        if (prev >= estimatedSeconds) {
           clearInterval(interval);
-          return totalEmails;
+          return estimatedSeconds;
         }
-        
-        // Simular sucesso/falha aleatória (90% sucesso)
-        if (Math.random() < 0.9) {
-          setSent(s => s + 1);
-        } else {
-          setFailed(f => f + 1);
-        }
-        
-        setProgress((next / totalEmails) * 100);
-        return next;
+        return prev + 1;
       });
-    }, 10000); // A cada 10 segundos (delay dos emails)
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [totalEmails]);
+  }, [estimatedSeconds]);
+
+  const progress = Math.min((elapsed / estimatedSeconds) * 100, 99); // Never show 100% — real result comes from backend
+  const remaining = Math.max(estimatedSeconds - elapsed, 0);
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const timeLabel = minutes > 0
+    ? `~${minutes}min ${seconds}s restantes`
+    : `~${seconds}s restantes`;
 
   return (
     <div className="send-page">
       <div className="progress-card">
         <h2 className="progress-title">📤 Enviando Emails...</h2>
-        
+
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }}></div>
         </div>
 
         <p className="progress-text">
-          {currentIndex} de {totalEmails} emails processados
+          {elapsed < estimatedSeconds
+            ? timeLabel
+            : 'Aguardando resposta do servidor...'}
         </p>
 
         <div className="progress-details">
           <div className="detail-item">
-            <span className="detail-label">Enviados com sucesso:</span>
-            <span className="detail-value sent">✓ {sent}</span>
+            <span className="detail-label">Total de destinatários:</span>
+            <span className="detail-value">{totalEmails}</span>
           </div>
           <div className="detail-item">
-            <span className="detail-label">Erros:</span>
-            <span className="detail-value failed">✗ {failed}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Restantes:</span>
-            <span className="detail-value">{totalEmails - currentIndex}</span>
+            <span className="detail-label">Tempo estimado:</span>
+            <span className="detail-value">{Math.ceil(estimatedSeconds / 60)} min</span>
           </div>
         </div>
 
-        <div className="current-email">
-          <div className="current-email-label">Email Atual</div>
-          <div className="current-email-value">
-            Processando... ({currentIndex + 1}/{totalEmails})
-          </div>
-        </div>
-
-        <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '20px' }}>
-          ⏱️ Aguarde: enviando 1 email a cada 10 segundos
+        <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '20px', textAlign: 'center' }}>
+          ⏱️ O servidor está enviando 1 email a cada 10 segundos.<br />
+          Os resultados reais serão exibidos ao final.
         </p>
       </div>
     </div>

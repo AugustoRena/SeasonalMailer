@@ -1,18 +1,11 @@
 import React, { useState } from 'react';
 
 const SetupPage = ({ onSetupComplete }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleTestConnection = async (e) => {
     e.preventDefault();
-
-    if (!email || !password) {
-      setStatus({ type: 'error', message: 'Preenchaa o email e a senha' });
-      return;
-    }
 
     setLoading(true);
     setStatus({ type: 'loading', message: 'Testando conexão...' });
@@ -20,10 +13,9 @@ const SetupPage = ({ onSetupComplete }) => {
     try {
       const response = await fetch('/.netlify/functions/test-connection', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
+        headers: { 'Content-Type': 'application/json' },
+        // Credentials are now stored in Netlify env vars — nothing sensitive sent from client
+        body: JSON.stringify({})
       });
 
       const data = await response.json();
@@ -31,7 +23,7 @@ const SetupPage = ({ onSetupComplete }) => {
       if (response.ok) {
         setStatus({ type: 'success', message: data.message });
         setTimeout(() => {
-          onSetupComplete(email, password);
+          onSetupComplete();
         }, 1000);
       } else {
         setStatus({ type: 'error', message: data.error });
@@ -53,8 +45,25 @@ const SetupPage = ({ onSetupComplete }) => {
           <span className="setup-icon">📧</span>
           <h1 className="setup-title">Configuração de Email</h1>
           <p className="setup-subtitle">
-            Configure suas credenciais do Gmail para começar a enviar emails em massa
+            As credenciais do Gmail são configuradas via variáveis de ambiente no Netlify.
+            Clique em "Testar Conexão" para verificar se estão corretas.
           </p>
+        </div>
+
+        <div style={{
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '20px',
+          fontSize: '13px',
+          color: '#0369a1',
+          lineHeight: '1.6'
+        }}>
+          <strong>Como configurar:</strong><br />
+          No painel do Netlify → Site settings → Environment variables, adicione:<br />
+          <code>GMAIL_USER</code> = seu-email@gmail.com<br />
+          <code>GMAIL_APP_PASSWORD</code> = sua senha de app
         </div>
 
         {status && (
@@ -65,46 +74,6 @@ const SetupPage = ({ onSetupComplete }) => {
         )}
 
         <form onSubmit={handleTestConnection}>
-          <div className="form-group">
-            <label className="form-label">Email Gmail</label>
-            <input
-              type="email"
-              className="form-input"
-              placeholder="seu-email@gmail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Senha de App do Gmail</label>
-            <input
-              type="password"
-              className="form-input"
-              placeholder="Digite sua senha de app"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-            <p style={{ 
-              fontSize: '12px', 
-              color: '#6b7280', 
-              marginTop: '8px',
-              lineHeight: '1.4'
-            }}>
-              💡 Não tem uma senha de app? Vá para{' '}
-              <a 
-                href="https://myaccount.google.com/apppasswords" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ color: '#2563eb', textDecoration: 'none' }}
-              >
-                myaccount.google.com/apppasswords
-              </a>
-            </p>
-          </div>
-
           <button
             type="submit"
             className="button button-primary"

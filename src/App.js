@@ -4,22 +4,27 @@ import SetupPage from './pages/SetupPage';
 import SendPage from './pages/SendPage';
 
 function App() {
-  const [credentials, setCredentials] = useState(null);
+  // Persist connection status in sessionStorage so page refresh doesn't log user out
+  const [connected, setConnected] = useState(() => {
+    return sessionStorage.getItem('smtp_verified') === 'true';
+  });
 
-  const handleSetupComplete = (email, password) => {
-    setCredentials({ email, password });
+  const handleSetupComplete = () => {
+    sessionStorage.setItem('smtp_verified', 'true');
+    setConnected(true);
   };
 
   const handleLogout = () => {
-    setCredentials(null);
+    sessionStorage.removeItem('smtp_verified');
+    setConnected(false);
   };
 
   return (
     <div className="app">
-      {!credentials ? (
+      {!connected ? (
         <SetupPage onSetupComplete={handleSetupComplete} />
       ) : (
-        <SendPage credentials={credentials} onLogout={handleLogout} />
+        <SendPage onLogout={handleLogout} />
       )}
     </div>
   );

@@ -1,41 +1,70 @@
 import nodemailer from 'nodemailer';
+import mime from 'mime-types';
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
 
 export const handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+  }
+
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: 'Método não permitido' })
     };
   }
 
   try {
-    const { 
-      email, 
-      password, 
-      recipients, 
-      subject, 
-      body, 
-      attachmentBase64, 
-      attachmentFilename 
+    const {
+      recipients,
+      subject,
+      body,
+      attachmentBase64,
+      attachmentFilename
     } = JSON.parse(event.body);
 
-    if (!email || !password || !recipients || !subject || !body) {
+    // Credentials come from environment variables — never from the client
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+    if (!gmailUser || !gmailPass) {
       return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Dados obrigatórios faltando' })
+        statusCode: 500,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({
+          error: 'Credenciais não configuradas. Defina GMAIL_USER e GMAIL_APP_PASSWORD nas variáveis de ambiente do Netlify.'
+        })
       };
     }
 
-    // Criar transportador
+    if (!recipients || !subject || !body) {
+      return {
+        statusCode: 400,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Campos obrigatórios faltando: recipients, subject, body' })
+      };
+    }
+
+    // Validate attachment size (~4 MB limit before Base64 inflation)
+    if (attachmentBase64 && attachmentBase64.length > 5_300_000) {
+      return {
+        statusCode: 400,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Arquivo muito grande. O limite é de aproximadamente 4 MB.' })
+      };
+    }
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: {
-        user: email,
-        pass: password
-      }
+      auth: { user: gmailUser, pass: gmailPass }
     });
 
-    // Parse dos emails
     const emailList = recipients
       .split(';')
       .map(e => e.trim())
@@ -45,75 +74,59 @@ export const handler = async (event) => {
     let sent = 0;
     let failed = 0;
 
-    // Enviar emails com delay de 10 segundos
     for (let i = 0; i < emailList.length; i++) {
       const recipient = emailList[i];
-      
+
       try {
         const mailOptions = {
-          from: email,
+          from: gmailUser,
           to: recipient,
           subject: subject,
           html: body.replace(/\n/g, '<br>')
         };
 
-        // Adicionar anexo se existir
         if (attachmentBase64 && attachmentFilename) {
+          // Resolve MIME type dynamically — no longer hardcoded to application/pdf
+          const detectedType = mime.lookup(attachmentFilename) || 'application/octet-stream';
           mailOptions.attachments = [
             {
               filename: attachmentFilename,
               content: Buffer.from(attachmentBase64, 'base64'),
-              contentType: 'application/pdf'
+              contentType: detectedType
             }
           ];
         }
 
         await transporter.sendMail(mailOptions);
-        
-        results.push({
-          email: recipient,
-          status: 'enviado',
-          timestamp: new Date().toISOString()
-        });
+
+        results.push({ email: recipient, status: 'enviado', timestamp: new Date().toISOString() });
         sent++;
 
-        // Delay de 10 segundos (exceto no último email)
         if (i < emailList.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 10000));
         }
       } catch (error) {
-        results.push({
-          email: recipient,
-          status: 'erro',
-          error: error.message,
-          timestamp: new Date().toISOString()
-        });
+        results.push({ email: recipient, status: 'erro', error: error.message, timestamp: new Date().toISOString() });
         failed++;
       }
     }
 
     return {
       statusCode: 200,
+      headers: CORS_HEADERS,
       body: JSON.stringify({
         success: true,
         message: `Campanha concluída. ${sent} enviados, ${failed} com erro.`,
-        summary: {
-          total: emailList.length,
-          sent: sent,
-          failed: failed
-        },
-        results: results
+        summary: { total: emailList.length, sent, failed },
+        results
       })
     };
   } catch (error) {
     console.error('Erro ao enviar emails:', error);
-    
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: 'Erro ao processar envio',
-        details: error.message
-      })
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'Erro ao processar envio', details: error.message })
     };
   }
 };
