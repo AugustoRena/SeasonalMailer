@@ -1,206 +1,89 @@
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                                                                              ║
-║                  📧 EMAIL CAMPAIGN SENDER - LEIA PRIMEIRO 📧                ║
-║                                                                              ║
-║                     Você recebeu uma aplicação COMPLETA!                     ║
-║                                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════╗
+║            SEASONALMAILER — LEIA PRIMEIRO                    ║
+╚══════════════════════════════════════════════════════════════╝
 
-Bem-vindo! Você tem TUDO pronto para enviar emails em massa com anexo de PDF.
+Bem-vindo! Este arquivo explica o que você tem nas mãos
+e por onde começar.
 
-═══════════════════════════════════════════════════════════════════════════════
-  COMEÇAR AQUI ⚡
-═══════════════════════════════════════════════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  O QUE É ESSE PROJETO?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📖 Arquivos para ler NA ORDEM:
+Uma aplicação web completa para enviar emails em massa com
+PDF anexado, e ver quem abriu cada email.
 
-1. QUICK_START.txt (⭐ COMECE AQUI - 5 minutos)
-   → Instruções rápidas em português
-   → Tudo que você precisa para começar
+  ✓ Você preenche os emails, escreve a mensagem, anexa o PDF
+  ✓ A aplicação envia um por um com delay de 10 segundos
+  ✓ Uma aba de Rastreamento mostra quem abriu e quando
 
-2. COMECE_AQUI.txt (Se preferir mais detalhes)
-   → Versão expandida do Quick Start
-   → Passo a passo bem explicado
+Custo: R$ 0. Tudo roda em serviços gratuitos.
 
-3. FAQ.md (Se tiver dúvidas)
-   → Respostas para 50+ perguntas
-   → Troubleshooting completo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ANTES DE FAZER O DEPLOY — 4 COISAS PARA PREPARAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-═══════════════════════════════════════════════════════════════════════════════
-  O QUE VOCÊ TEM
-═══════════════════════════════════════════════════════════════════════════════
+  1. GMAIL — gere uma senha de app (não a senha normal):
+     https://myaccount.google.com/apppasswords
+     Você precisa de autenticação em dois fatores ativada.
 
-✅ APLICAÇÃO REACT PROFISSIONAL
-   • 4 páginas completas (Setup, Send, Progress, Results)
-   • Interface bonita e responsiva
-   • Dark mode automático
+  2. GITHUB — crie um repositório para hospedar o código:
+     https://github.com/new
 
-✅ BACKEND COM NETLIFY FUNCTIONS
-   • 2 funções serverless
-   • Integração SMTP Gmail
-   • Delay de 10 segundos entre emails
+  3. NETLIFY — onde a aplicação vai rodar (grátis):
+     https://app.netlify.com
 
-✅ 9 ARQUIVOS DE DOCUMENTAÇÃO
-   • QUICK_START.txt
-   • COMECE_AQUI.txt
-   • DEPLOYMENT_GUIDE.md
-   • EXEMPLO_EMAIL.md
-   • COMO_ENCONTRAR_EMAILS.md
-   • FAQ.md
-   • CHECKLIST.md
-   • README.md
-   • INDICE.md
+  4. SUPABASE — para o painel de rastreamento (grátis):
+     https://supabase.com
+     Após criar o projeto, execute SUPABASE_SETUP.sql no
+     SQL Editor do painel.
 
-✅ CÓDIGO PRONTO PARA DEPLOY
-   • 22 arquivos
-   • Estrutura profissional
-   • Sem erros, sem dependências pesadas
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  VARIÁVEIS DE AMBIENTE (configurar no Netlify)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-═══════════════════════════════════════════════════════════════════════════════
-  5 PASSOS ATÉ FICAR ONLINE
-═══════════════════════════════════════════════════════════════════════════════
+  Em Site settings → Environment variables, adicione:
 
-1️⃣  GMAIL (5 minutos)
-    Gere senha de app em: https://myaccount.google.com/apppasswords
+  GMAIL_USER            → seu-email@gmail.com
+  GMAIL_APP_PASSWORD    → senha de 16 caracteres do Gmail
+  SUPABASE_URL          → URL do projeto no Supabase
+  SUPABASE_SERVICE_KEY  → service_role key do Supabase
 
-2️⃣  GITHUB (2 minutos)
-    Crie repositório em: https://github.com/new
+  Sem essas variáveis, a aplicação não consegue enviar emails.
 
-3️⃣  UPLOAD (3 minutos)
-    Faça push dos arquivos para GitHub
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  POR ONDE COMEÇAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-4️⃣  NETLIFY (5 minutos)
-    Conecte em: https://app.netlify.com
+  Leia QUICK_START.txt — tem o passo a passo completo
+  em menos de 25 minutos do zero ao online.
 
-5️⃣  PRONTO! 🎉
-    Sua URL está online e funcionando!
+  Se preferir detalhes técnicos, veja README.md.
+  Se tiver dúvidas, veja FAQ.md.
+  Se quiser exemplos de email, veja EXEMPLO_EMAIL.md.
 
-TEMPO TOTAL: ~20 MINUTOS
-
-═══════════════════════════════════════════════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ESTRUTURA DOS ARQUIVOS
-═══════════════════════════════════════════════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-email-campaign-sender/
-├── 📖 DOCUMENTAÇÃO
-│   ├── 00_LEIA_PRIMEIRO.txt (este arquivo)
-│   ├── QUICK_START.txt ⭐
-│   ├── COMECE_AQUI.txt
-│   ├── DEPLOYMENT_GUIDE.md
-│   ├── FAQ.md
-│   ├── EXEMPLO_EMAIL.md
-│   ├── COMO_ENCONTRAR_EMAILS.md
-│   ├── CHECKLIST.md
-│   ├── README.md
-│   ├── INDICE.md
-│   └── ENTREGA_FINAL.md
-│
-├── ⚙️  CONFIGURAÇÃO
-│   ├── package.json
-│   ├── netlify.toml
-│   └── .gitignore
-│
-├── 💻 CÓDIGO (React)
-│   ├── src/
-│   │   ├── App.js
-│   │   ├── App.css
-│   │   ├── index.js
-│   │   └── pages/
-│   │       ├── SetupPage.js
-│   │       ├── SendPage.js
-│   │       ├── ProgressPage.js
-│   │       └── ResultsPage.js
-│   ├── public/
-│   │   └── index.html
-│   └── netlify/functions/
-│       ├── test-connection.js
-│       └── send-emails.js
+  Documentação:
+    00_LEIA_PRIMEIRO.txt   ← você está aqui
+    QUICK_START.txt        ← comece por aqui
+    COMECE_AQUI.txt        ← versão detalhada
+    FAQ.md                 ← dúvidas e problemas
+    CHECKLIST.md           ← não esqueça nada
+    DEPLOYMENT_GUIDE.md    ← deploy em detalhes
+    EXEMPLO_EMAIL.md       ← modelos prontos
+    COMO_ENCONTRAR_EMAILS.md
+    SUPABASE_SETUP.sql     ← execute no Supabase
 
-═══════════════════════════════════════════════════════════════════════════════
-  PRIMEIRO PASSO: Abra QUICK_START.txt
-═══════════════════════════════════════════════════════════════════════════════
+  Código:
+    src/pages/             ← telas da aplicação
+    src/netlify/functions/ ← backend serverless
+    src/App.js / App.css   ← navegação e estilos
+    netlify.toml           ← configuração do deploy
+    package.json           ← dependências
 
-O arquivo QUICK_START.txt tem TUDO que você precisa para:
-✓ Preparar o Gmail
-✓ Criar repositório GitHub
-✓ Fazer upload dos arquivos
-✓ Deploy no Netlify
-✓ Usar a aplicação
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-═══════════════════════════════════════════════════════════════════════════════
-  DÚVIDAS? Consulte:
-═══════════════════════════════════════════════════════════════════════════════
+Abra QUICK_START.txt para começar.
 
-"Invalid login" → FAQ.md (Problemas com Gmail)
-"Como fazer deploy?" → DEPLOYMENT_GUIDE.md
-"Qual email enviar?" → EXEMPLO_EMAIL.md
-"Como encontrar contatos?" → COMO_ENCONTRAR_EMAILS.md
-"Tenho dúvida X" → FAQ.md (tem resposta lá!)
-"Esqueci algo?" → CHECKLIST.md
-
-═══════════════════════════════════════════════════════════════════════════════
-  RESUMO RÁPIDO
-═══════════════════════════════════════════════════════════════════════════════
-
-📱 Aplicação:
-   • Frontend em React (4 páginas)
-   • Backend em Node.js (Netlify Functions)
-   • Email via Gmail SMTP
-   • Deploy no Netlify (grátis!)
-
-⏱️  Tempo de envio:
-   • 10 segundos por email
-   • 100 emails = 16 minutos
-   • 500 emails = 1h20min
-
-💰 Custo:
-   • R$ 0 (GRÁTIS!)
-   • Netlify: free tier
-   • GitHub: free
-   • Gmail: free
-
-📊 Resultados esperados:
-   • 2-5% de taxa de resposta
-   • 1-3% de entrevistas
-   • 100+ emails recomendados para começar
-
-═══════════════════════════════════════════════════════════════════════════════
-  CHECKLIST RÁPIDO
-═══════════════════════════════════════════════════════════════════════════════
-
-□ Você tem todos os 22 arquivos?
-□ Você tem conta no Gmail?
-□ Você tem conta no GitHub?
-□ Você tem conta no Netlify?
-□ Você tem um currículo em PDF?
-□ Você leu pelo menos QUICK_START.txt?
-
-Se SIM em todos → Pronto para começar! 🚀
-
-═══════════════════════════════════════════════════════════════════════════════
-  DICA ESPECIAL
-═══════════════════════════════════════════════════════════════════════════════
-
-Você NÃO precisa de:
-❌ Pagar por nada
-❌ Instalar programas
-❌ Aprender programação
-❌ Conhecer Git/GitHub (temos guides!)
-❌ Ser técnico
-
-Você PRECISA de:
-✅ Email Gmail
-✅ Conta GitHub (2 minutos para criar)
-✅ Conta Netlify (2 minutos para criar)
-✅ Um PDF do currículo
-✅ Uma lista de emails
-
-═══════════════════════════════════════════════════════════════════════════════
-  AGORA ABRA: QUICK_START.txt
-═══════════════════════════════════════════════════════════════════════════════
-
-Tudo que você precisa está naquele arquivo!
-
-Boa sorte! 🚀💪
-
-═══════════════════════════════════════════════════════════════════════════════

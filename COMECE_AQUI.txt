@@ -1,224 +1,153 @@
-================================================================================
-       EMAIL CAMPAIGN SENDER - COMECE AQUI 🚀
-================================================================================
+╔══════════════════════════════════════════════════════════════╗
+║           SEASONALMAILER — GUIA COMPLETO                     ║
+╚══════════════════════════════════════════════════════════════╝
 
-Sua aplicação de envio de emails em massa está PRONTA!
+Este guia é a versão detalhada do QUICK_START.txt.
+Se você já leu o Quick Start, pode pular direto para a seção
+que precisar.
 
-================================================================================
-O QUE FOI CRIADO?
-================================================================================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMO A APLICAÇÃO FUNCIONA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ Aplicação React profissional com interface bonita
-✅ 2 Páginas: Setup (teste de conexão) + Send (envio de emails)
-✅ Backend com Netlify Functions para enviar emails via SMTP Gmail
-✅ Delay de 10 segundos entre cada email (para não travar)
-✅ Upload de PDF (seu currículo)
-✅ Progresso em tempo real
-✅ Relatório detalhado dos envios
+  Frontend (React): roda no navegador — é o que você vê
+  Backend (Netlify Functions): roda no servidor — envia os emails
 
-================================================================================
-PASSO 1: PREPARAR O GMAIL (5 MINUTOS)
-================================================================================
+  A aplicação nunca passa suas credenciais pelo navegador.
+  O Gmail e o Supabase só são acessados pelo backend,
+  usando as variáveis de ambiente que você configura no Netlify.
 
-IMPORTANTE: Você precisa de uma SENHA DE APP do Gmail!
+  Fluxo de envio:
+    1. Você preenche o formulário e clica em Enviar
+    2. O frontend divide a lista em lotes de 2 emails
+    3. Para cada lote, chama a função send-emails no Netlify
+    4. A função envia os 2 emails com 10s de intervalo
+    5. O frontend atualiza o progresso e chama o próximo lote
+    6. Ao terminar, exibe o relatório com status de cada email
 
-1. Acesse: https://myaccount.google.com/apppasswords
-2. Selecione:
-   - App: "Mail"
-   - Device: "Windows Computer" (ou seu dispositivo)
-3. Google gera uma senha de 16 caracteres
-4. COPIE ESSA SENHA (você usará na aplicação)
+  Fluxo de rastreamento:
+    1. Cada email enviado contém uma imagem 1×1 invisível
+    2. A URL da imagem contém o email e o ID da campanha
+    3. Quando o destinatário abre o email, o cliente carrega a imagem
+    4. A função track-open registra a abertura no Supabase
+    5. O painel de Rastreamento consulta o Supabase e exibe os dados
 
-⚠️ Essa é a SENHA DE APP, não sua senha normal do Gmail!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PASSO 1 — CONFIGURAR O GMAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-================================================================================
-PASSO 2: CRIAR REPOSITÓRIO NO GITHUB (2 MINUTOS)
-================================================================================
+  Por que senha de app e não senha normal?
+  A senha de app é um código separado gerado especificamente
+  para aplicações. Ela não dá acesso à sua conta Google —
+  só permite enviar emails. Se vazar, você a revoga em segundos
+  sem precisar trocar sua senha principal.
 
-1. Acesse: https://github.com/new
-2. Crie um repositório:
-   - Name: "email-campaign-sender"
-   - Visibility: Public ou Private
-3. Clique em "Create repository"
-4. COPIE a URL (vai parecer assim: https://github.com/seu-usuario/email-campaign-sender.git)
+  Como gerar:
+  1. Acesse https://myaccount.google.com/apppasswords
+  2. Se não aparecer a opção, ative autenticação em dois fatores
+     em https://myaccount.google.com/security primeiro
+  3. Escolha "Mail" e "Windows Computer"
+  4. Copie os 16 caracteres sem espaços
 
-================================================================================
-PASSO 3: FAZER UPLOAD DOS ARQUIVOS (3 MINUTOS)
-================================================================================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PASSO 2 — CONFIGURAR O SUPABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Via GitHub Desktop (Mais Fácil):
-1. Abra GitHub Desktop
-2. File → Clone Repository
-3. Paste a URL do repositório
-4. Clone para uma pasta local
-5. Abra a pasta
-6. Copie TODOS os arquivos da aplicação para dentro dessa pasta
-   (package.json, netlify.toml, src/, netlify/, public/, etc)
-7. Commit + Push para o GitHub
+  O Supabase armazena os eventos de abertura. O plano gratuito
+  suporta 500 MB de banco de dados — mais do que suficiente.
 
-Via Terminal (Se preferir comando):
-cd /caminho/da/pasta
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/seu-usuario/email-campaign-sender.git
-git push -u origin main
+  1. Crie conta e projeto em https://supabase.com
+  2. No painel, vá em SQL Editor (ícone de banco de dados)
+  3. Cole e execute o conteúdo do arquivo SUPABASE_SETUP.sql
+     Isso cria a tabela email_events e os índices necessários
+  4. Vá em Project Settings → API:
+     - Copie "Project URL"
+     - Copie "service_role" key (não a "anon" key)
 
-================================================================================
-PASSO 4: FAZER DEPLOY NO NETLIFY (5 MINUTOS)
-================================================================================
+  ATENÇÃO: use a service_role key, não a anon key.
+  A anon key não tem permissão para escrever na tabela.
 
-1. Acesse: https://app.netlify.com
-2. Clique em "Add new site" → "Import an existing project"
-3. Selecione "GitHub"
-4. Autorize o Netlify
-5. Selecione seu repositório "email-campaign-sender"
-6. Configure assim:
-   - Build command: npm run build
-   - Publish directory: build
-   - Functions directory: netlify/functions
-7. Clique em "Deploy site"
-8. Aguarde ~2 minutos
-9. Sua URL aparecerá: https://seu-site-aleatorio.netlify.app
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PASSO 3 — SUBIR O CÓDIGO NO GITHUB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-================================================================================
-PASSO 5: TESTAR A APLICAÇÃO (2 MINUTOS)
-================================================================================
+  Via terminal:
 
-1. Acesse a URL do Netlify
-2. Você verá a página de Setup:
-   - Email: seu-email@gmail.com
-   - Senha: sua SENHA DE APP (16 dígitos)
-3. Clique em "Testar Conexão"
-4. Se aparecer ✓ em verde = Sucesso!
-5. Agora você está na página de Envio
+    cd /caminho/para/SeasonalMailer-fixed
+    git init
+    git add .
+    git commit -m "initial commit"
+    git branch -M main
+    git remote add origin https://github.com/SEU-USUARIO/REPO.git
+    git push -u origin main
 
-================================================================================
-PASSO 6: USAR A APLICAÇÃO
-================================================================================
+  Via GitHub Desktop:
+    1. File → Add Local Repository → escolha a pasta
+    2. Publish repository (ou Push se já existir)
 
-Na página de Envio:
+  Confirme que os arquivos aparecem no GitHub antes de continuar.
 
-1. Faça upload do seu PDF (currículo)
-   - Clique na área de upload
-   - Selecione seu PDF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PASSO 4 — DEPLOY NO NETLIFY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-2. Preencha a lista de emails
-   - Separe cada email com ";"
-   - Exemplo: email1@example.com; email2@example.com; email3@example.com
+  1. Em https://app.netlify.com, clique em Add new site →
+     Import an existing project → GitHub
+  2. Autorize o Netlify e selecione seu repositório
+  3. Não altere nada nas configurações de build —
+     o netlify.toml já define tudo corretamente
+  4. Clique em Deploy site
 
-3. Escreva o assunto do email
-   - Exemplo: "Candidatura - Desenvolvedor Full Stack"
+  Enquanto o build roda, configure as variáveis:
+  Site settings → Environment variables → Add a variable
 
-4. Escreva o corpo do email
-   - Coloque seu nome, experiência, etc
+    GMAIL_USER            → seu-email@gmail.com
+    GMAIL_APP_PASSWORD    → 16 caracteres da senha de app
+    SUPABASE_URL          → URL do projeto Supabase
+    SUPABASE_SERVICE_KEY  → service_role key do Supabase
 
-5. Clique em "Enviar"
-   - Você verá o progresso em tempo real
-   - Cada email leva 10 segundos
-   - Ao final, um relatório mostra quais foram enviados e quais tiveram erro
+  Após salvar todas as 4 variáveis, vá em Deploys →
+  Trigger deploy para fazer um novo build com as variáveis.
 
-================================================================================
-EXEMPLO DE USO REAL
-================================================================================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  USANDO A APLICAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Emails:
-rh@empresa1.com; contato@empresa2.com; jobs@empresa3.com
+  Tela de verificação:
+  Na primeira visita, clique em Testar Conexão.
+  Se aparecer ✓ verde, o Gmail está configurado corretamente.
+  Após verificar, a sessão é salva — refresh não pede de novo.
 
-Assunto:
-Candidatura - Desenvolvedor Full Stack
+  Aba Enviar:
+  - PDF: limite de 4 MB. O tamanho aparece ao selecionar o arquivo.
+  - Emails: separe por ";". Ex: a@x.com; b@y.com; c@z.com
+  - O assunto aceita até 100 caracteres
+  - Mantenha a aba aberta durante todo o envio
 
-Corpo:
-Prezados,
+  Aba Rastreamento:
+  - Exibe aberturas agrupadas por campanha
+  - Cada linha mostra email, horário e cliente de email
+  - Atualiza automaticamente a cada 30 segundos
+  - Use o botão ↻ para atualizar manualmente
 
-Meu nome é [SEU NOME] e estou interessado na vaga de Desenvolvedor.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BOAS PRÁTICAS DE ENVIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Tenho experiência com:
-- React e Node.js
-- Bancos de dados (PostgreSQL)
-- REST APIs
+  - Não envie mais de 300 emails por dia pela mesma conta
+  - Espere pelo menos 3 dias antes de reenviar para os mesmos contatos
+  - Personalize o corpo do email — emails genéricos têm taxa
+    de resposta significativamente menor
+  - Verifique se os emails da lista são válidos antes de enviar —
+    muitos bounces prejudicam a reputação do seu domínio Gmail
 
-Segue em anexo meu currículo completo.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PRÓXIMOS ARQUIVOS PARA LER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Fico no aguardo!
+  FAQ.md                   → problemas comuns e soluções
+  EXEMPLO_EMAIL.md         → modelos de email para copiar
+  COMO_ENCONTRAR_EMAILS.md → como montar sua lista de contatos
+  CHECKLIST.md             → para não esquecer nenhum passo
+  README.md                → documentação técnica completa
 
-Atenciosamente,
-[SEU NOME]
-
-================================================================================
-DICAS IMPORTANTES
-================================================================================
-
-1. Tempo de Envio:
-   - 10 emails = 1:40 minuto
-   - 50 emails = 8:20 minutos
-   - 100 emails = 16:40 minutos
-   - Mantenha a aba aberta durante todo o processo!
-
-2. Limite do Gmail:
-   - Máximo ~500 emails/hora
-   - Se passar, seu email será bloqueado por 24h
-
-3. PDF:
-   - Tamanho máximo: 25MB
-   - Deve ser um PDF válido
-
-4. Segurança:
-   - Você digita email e senha a cada uso
-   - Nenhuma informação é salva
-   - Use HTTPS (Netlify fornece automaticamente)
-
-================================================================================
-TROUBLESHOOTING
-================================================================================
-
-❌ "Invalid login":
-   → Use a SENHA DE APP (16 dígitos), não a senha normal
-   → Vá novamente em https://myaccount.google.com/apppasswords
-
-❌ "Too many login attempts":
-   → Google bloqueou por segurança
-   → Aguarde 1 hora e tente novamente
-
-❌ Emails não estão sendo enviados:
-   → Teste a conexão SMTP novamente (página 1)
-   → Verifique sua internet
-   → Verifique a aba "Functions" no Netlify para erros
-
-================================================================================
-ARQUIVO IMPORTANTES
-================================================================================
-
-- README.md: Documentação técnica completa
-- DEPLOYMENT_GUIDE.md: Guia detalhado de deploy
-- package.json: Dependências do projeto
-- netlify.toml: Configurações do Netlify
-- netlify/functions/: Backend (Netlify Functions)
-- src/: Componentes React
-
-================================================================================
-SUPORTE
-================================================================================
-
-Se tiver dúvidas:
-1. Verifique README.md ou DEPLOYMENT_GUIDE.md
-2. Confirme se está usando a SENHA DE APP (não a senha normal)
-3. Teste a conexão SMTP antes de enviar
-4. Verifique o console do navegador (F12 > Console) para erros
-
-================================================================================
-PRONTO! 🎉
-================================================================================
-
-Sua aplicação está online e funcionando!
-
-Próximos passos:
-1. Faça login no seu GitHub
-2. Faça deploy no Netlify (está na seção PASSO 4)
-3. Teste com seus emails
-4. Envie suas candidaturas! 🚀
-
-Boa sorte! 💪
-
-================================================================================

@@ -1,216 +1,136 @@
-# GUIA DE DEPLOY - EMAIL CAMPAIGN SENDER 🚀
+# Guia de Deploy — SeasonalMailer
 
-## 📝 PASSO 1: Preparar os Arquivos
+---
 
-Todos os arquivos da aplicação estão prontos! Você tem:
+## Pré-requisitos
 
-✅ `package.json` - Dependências do projeto
-✅ `netlify.toml` - Configurações do Netlify
-✅ `README.md` - Documentação completa
-✅ `src/` - Componentes React
-✅ `netlify/functions/` - Backend (Netlify Functions)
-✅ `public/` - HTML principal
+- Node.js 18+ instalado localmente (só para testar local; não obrigatório para deploy)
+- Conta no GitHub
+- Conta no Netlify
+- Conta no Supabase
+- Gmail com senha de app gerada
 
-## 🔐 PASSO 2: Preparar Credenciais do Gmail
+---
 
-**Importante**: Use a SENHA DE APP, não a senha normal do Gmail!
+## 1. Supabase
 
-1. Vá para: https://myaccount.google.com/apppasswords
-2. Selecione:
-   - App: "Mail"
-   - Device: "Windows Computer" (ou seu dispositivo)
-3. Google vai gerar uma senha de 16 caracteres
-4. **COPIE ESSA SENHA** - você usará na aplicação
+1. Crie um projeto em https://supabase.com (região mais próxima de você)
+2. No painel, vá em **SQL Editor** e execute o arquivo `SUPABASE_SETUP.sql`
+3. Vá em **Project Settings → API** e copie:
+   - **Project URL** (ex: `https://xyzxyz.supabase.co`)
+   - **service_role key** (em "Project API keys" — use essa, não a anon key)
 
-Exemplo: `abcd efgh ijkl mnop` (sem os espaços)
+---
 
-## 📦 PASSO 3: Criar Repositório no GitHub
-
-1. Acesse: https://github.com/new
-2. Preencha:
-   - Name: `email-campaign-sender` (ou seu nome)
-   - Description: "Envio de emails em massa"
-   - Visibility: "Public" ou "Private" (como preferir)
-3. Clique em "Create repository"
-
-## 💻 PASSO 4: Fazer Upload do Código para GitHub
-
-### Via Terminal (Recomendado):
+## 2. GitHub
 
 ```bash
-# Navegue para a pasta do projeto
-cd /caminho/para/email-campaign-sender
-
-# Inicialize git
 git init
 git add .
-git commit -m "Initial commit"
+git commit -m "initial commit"
 git branch -M main
-
-# Adicione o repositório remoto
-git remote add origin https://github.com/SEU-USUARIO/email-campaign-sender.git
-
-# Faça push
+git remote add origin https://github.com/SEU-USUARIO/seasonal-mailer.git
 git push -u origin main
 ```
 
-### Via GitHub Desktop:
+Confirme no navegador que todos os arquivos aparecem no repositório.
 
-1. Abra GitHub Desktop
-2. File → Clone Repository
-3. Selecione a aba "URL"
-4. Cole a URL do seu repositório
-5. Clique em "Clone"
-6. Faça as alterações
-7. Commit + Push
+---
 
-## 🌐 PASSO 5: Deploy no Netlify
+## 3. Netlify
 
-### Opção A: Via GitHub (Mais Fácil)
+### Criar o site
 
-1. Acesse: https://app.netlify.com
-2. Clique em "Add new site" → "Import an existing project"
-3. Selecione "GitHub"
-4. Autorize o Netlify a acessar sua conta GitHub
-5. Selecione o repositório `email-campaign-sender`
-6. Configure:
+1. Em https://app.netlify.com, clique em **Add new site → Import an existing project**
+2. Selecione **GitHub**, autorize e escolha o repositório
+3. As configurações abaixo já estão no `netlify.toml` — não altere:
    - Build command: `npm run build`
    - Publish directory: `build`
-   - Functions directory: `netlify/functions`
-7. Clique em "Deploy site"
-8. Aguarde (leva ~2 minutos)
-9. Seu site estará em: `https://seu-site-aleatorio.netlify.app`
+   - Functions directory: `src/netlify/functions`
+4. Clique em **Deploy site**
 
-### Opção B: Via Netlify CLI
+### Variáveis de ambiente
+
+Em **Site settings → Environment variables**, adicione:
+
+| Variável | Valor |
+|---|---|
+| `GMAIL_USER` | seu-email@gmail.com |
+| `GMAIL_APP_PASSWORD` | senha de app de 16 caracteres |
+| `SUPABASE_URL` | URL do projeto Supabase |
+| `SUPABASE_SERVICE_KEY` | service_role key do Supabase |
+
+Após salvar, vá em **Deploys → Trigger deploy** para o build rodar com as novas variáveis.
+
+---
+
+## 4. Verificar o deploy
+
+1. Acesse a URL gerada pelo Netlify (ex: `https://seu-site.netlify.app`)
+2. Clique em **Testar Conexão**
+3. Deve aparecer ✓ verde com o email configurado
+
+Se aparecer erro:
+- Verifique os logs em **Netlify → Functions → test-connection → Recent logs**
+- Confirme que as 4 variáveis estão salvas corretamente
+- Faça um novo deploy após corrigir
+
+---
+
+## 5. Testar envio e rastreamento
+
+1. Na aba **Enviar**, envie um email de teste para você mesmo
+2. Abra o email recebido
+3. Vá na aba **Rastreamento** — a abertura deve aparecer em até 30 segundos
+4. Se não aparecer, verifique `SUPABASE_URL` e `SUPABASE_SERVICE_KEY`
+
+---
+
+## Deploy automático
+
+Após a configuração inicial, qualquer `git push` para a branch `main`
+dispara um novo deploy automaticamente no Netlify.
 
 ```bash
-# Instale Netlify CLI
+# Para atualizar a aplicação:
+git add .
+git commit -m "descrição da mudança"
+git push
+```
+
+---
+
+## Testar localmente (opcional)
+
+```bash
 npm install -g netlify-cli
-
-# Faça login
-netlify login
-
-# Deploy
-netlify deploy --prod
+npm install
+netlify dev
 ```
 
-## ✅ PASSO 6: Testar a Aplicação
+Crie um arquivo `.env` na raiz com as variáveis de ambiente para o teste local:
 
-1. Acesse a URL gerada pelo Netlify
-2. Na página de Setup:
-   - Email: seu-email@gmail.com
-   - Senha: sua senha de app (16 dígitos)
-3. Clique em "Testar Conexão"
-4. Se aparecer mensagem verde ✓, funcionou!
-
-## 🎯 PASSO 7: Usar a Aplicação
-
-### Primeira Vez:
-1. Página de Setup aparece
-2. Preencha email e senha do Gmail
-3. Clique em "Testar Conexão"
-4. Se OK, você entra na página de envio
-
-### Páginas:
-
-**1️⃣ Setup (Configuração)**
-- Email Gmail
-- Senha de App
-- Botão "Testar Conexão"
-
-**2️⃣ Send (Envio)**
-- Upload do PDF (currículo)
-- Lista de emails (separados por `;`)
-- Assunto do email
-- Corpo do email
-- Botão "Enviar"
-
-**3️⃣ Progress (Progresso)**
-- Barra de progresso
-- Contadores (enviados/erros)
-- Email atual sendo processado
-
-**4️⃣ Results (Resultados)**
-- Resumo total
-- Tabela com status de cada email
-- Botão para voltar
-
-## 📧 Exemplo de Uso
-
-### Emails a Enviar:
 ```
-rh@empresa1.com; contato@empresa2.com; jobs@empresa3.com
+GMAIL_USER=seu-email@gmail.com
+GMAIL_APP_PASSWORD=suasenha
+SUPABASE_URL=https://xyzxyz.supabase.co
+SUPABASE_SERVICE_KEY=sua-service-key
 ```
 
-### Assunto:
-```
-Candidatura - Desenvolvedor Full Stack
-```
+> Nunca faça commit do arquivo `.env` — ele já está no `.gitignore`.
 
-### Corpo:
-```
-Olá,
+---
 
-Estou enviando meu currículo para a vaga de Desenvolvedor.
+## Resolução de problemas de deploy
 
-Tenho experiência em React, Node.js e banco de dados.
+**Build falha com erro de ESLint**
+Verifique se há warnings de lint no código. Em ambiente CI, o React Scripts
+trata warnings como erros. Veja a mensagem de erro nos logs do Netlify.
 
-Fico no aguardo!
+**Função retorna 500 logo de cara**
+As variáveis de ambiente não estão sendo lidas. Confirme que o deploy foi
+feito *após* salvar as variáveis.
 
-Atenciosamente,
-João Silva
-```
-
-## ⚠️ CUIDADOS IMPORTANTES
-
-1. **Senha é a DE APP, não a normal!**
-   - Se usar a senha normal, vai dar erro "Invalid login"
-
-2. **Cada email leva 10 segundos**
-   - 10 emails = 1:40 minuto
-   - 100 emails = 16 minutos
-   - Mantenha a aba aberta!
-
-3. **Sem limite de emails por dia**
-   - Gmail permite ~500 emails/hora
-   - Se passar disso, será bloqueado
-
-4. **PDF deve ser válido**
-   - Tamanho máximo: 25MB
-   - Formato: .pdf
-
-## 🔄 Deploy Automático
-
-Após configurar no GitHub + Netlify:
-- Toda vez que você fizer `git push`
-- O Netlify faz deploy automaticamente
-- Não precisa fazer nada manualmente!
-
-## 🆘 Troubleshooting
-
-### "Invalid login" no Setup
-- Use a senha de app (16 dígitos), não a senha normal
-- Copie novamente em: https://myaccount.google.com/apppasswords
-
-### Emails não saem
-- Verifique se a conexão foi testada OK (página 1)
-- Verifique a internet
-- Veja a aba "Functions" no dashboard Netlify para erros
-
-### "Too many login attempts"
-- Gmail bloqueou a conta por segurança
-- Aguarde 1 hora
-- Acesse: https://accounts.google.com/signin/security para verificar
-
-## 📱 Acessar de Outros Dispositivos
-
-Depois do deploy:
-- Abra o navegador em qualquer dispositivo
-- Cole a URL: `https://seu-site.netlify.app`
-- Funciona em Desktop, Tablet e Mobile!
-
-## 🎉 Pronto!
-
-Sua aplicação está online e pronta para usar!
-
-Qualquer dúvida, consulte o README.md completo.
+**Função não encontrada (404)**
+Confirme que `netlify.toml` tem `functions = "src/netlify/functions"` e que
+o diretório existe no repositório com os arquivos `.js` dentro.
