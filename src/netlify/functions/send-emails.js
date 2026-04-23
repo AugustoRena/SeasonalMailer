@@ -102,10 +102,7 @@ export const handler = async (event) => {
     } catch (err) {
       results.push({ email: recipient, status: 'erro', error: err.message, timestamp: new Date().toISOString() });
     }
-
-    if (i < batch.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 30000));
-    }
+    // No delay here — delay is handled by the frontend between requests
   }
 
   return {

@@ -94,6 +94,11 @@ const SendPage = ({ onLogout }) => {
         const batchSent = allResults.filter(r => r.status === 'enviado').length;
         const batchFailed = allResults.filter(r => r.status === 'erro').length;
         setProgressData({ total, current: Math.min(i + BATCH_SIZE, total), sent: batchSent, failed: batchFailed });
+
+        // Wait 20s between emails — delay must be here since batch size is 1
+        if (i + BATCH_SIZE < emails.length) {
+          await new Promise(resolve => setTimeout(resolve, 20000));
+        }
       }
 
       const finalSent = allResults.filter(r => r.status === 'enviado').length;

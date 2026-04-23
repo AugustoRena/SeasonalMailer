@@ -8,7 +8,7 @@ const ProgressPage = ({ progressData }) => {
   const remaining = total - current;
   const progress = current > 0 ? Math.min(Math.round((current / total) * 100), 99) : 0;
 
-  const estimatedSecondsLeft = remaining * 30;
+  const estimatedSecondsLeft = remaining * 20;
   const minutes = Math.floor(estimatedSecondsLeft / 60);
   const seconds = estimatedSecondsLeft % 60;
   const timeLabel = current === 0
@@ -46,7 +46,7 @@ const ProgressPage = ({ progressData }) => {
         </div>
 
         <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '20px', textAlign: 'center' }}>
-          ⏱️ Enviando 1 email a cada 30 segundos — progresso atualizado a cada envio.
+          ⏱️ Enviando 1 email a cada 20 segundos — progresso atualizado a cada envio.
         </p>
       </div>
     </div>
