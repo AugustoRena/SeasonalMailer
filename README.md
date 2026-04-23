@@ -5,7 +5,7 @@ Aplicação React para envio de emails em massa com anexo de PDF e rastreamento 
 ## Funcionalidades
 
 - Envio em massa de emails com PDF anexado via Gmail SMTP
-- Delay de 10 segundos entre cada email (evita bloqueio do Gmail)
+- Delay de 30 segundos entre cada email (evita bloqueio do Gmail)
 - Progresso em tempo real durante o envio
 - Relatório detalhado ao finalizar (enviados, erros, horários)
 - Rastreamento de aberturas por pixel invisível
