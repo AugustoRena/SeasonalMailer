@@ -21,7 +21,7 @@ Aguarde 1 hora e tente novamente com a senha de app correta.
 **Quantos emails posso enviar?**
 O limite do Gmail via SMTP é de ~500 emails por hora.
 Recomendado: até 300 por campanha por dia para evitar bloqueio.
-Com o delay de 10 segundos, 300 emails levam ~50 minutos.
+Com o delay de 30 segundos, 300 emails levam ~150 minutos.
 
 ---
 

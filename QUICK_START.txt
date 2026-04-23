@@ -114,9 +114,9 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   Tempo de envio:
-    10 emails  =  ~2 minutos
-    50 emails  =  ~9 minutos
-    100 emails =  ~17 minutos
+    10 emails  =  ~5 minutos
+    50 emails  =  ~25 minutos
+    100 emails =  ~50 minutos
 
   Limite Gmail: ~500 emails/hora
   Recomendado: até 300 por campanha por dia

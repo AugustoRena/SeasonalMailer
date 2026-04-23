@@ -3,7 +3,7 @@ import ProgressPage from './ProgressPage';
 import ResultsPage from './ResultsPage';
 
 const MAX_PDF_BYTES = 4 * 1024 * 1024; // 4 MB
-const BATCH_SIZE = 2; // max emails per request — keeps each call under 26s timeout
+const BATCH_SIZE = 1; // 1 email per request — mimics human sending, better for Gmail reputation
 
 const SendPage = ({ onLogout }) => {
   const [pdfFile, setPdfFile] = useState(null);
