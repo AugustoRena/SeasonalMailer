@@ -57,7 +57,7 @@ function App() {
       </nav>
 
       {/* Always render SendPage — just hide it when on tracking tab */}
-      <div style={{ display: tab === 'send' ? 'block' : 'none' }}>
+      <div className="page-content" style={{ display: tab === 'send' ? 'flex' : 'none' }}>
         <SendPage
           onLogout={handleLogout}
           sendPhase={sendPhase}
@@ -71,7 +71,11 @@ function App() {
         />
       </div>
 
-      {tab === 'tracking' && <TrackingPage onLogout={handleLogout} />}
+      {tab === 'tracking' && (
+        <div className="page-content">
+          <TrackingPage onLogout={handleLogout} />
+        </div>
+      )}
     </div>
   );
 }
