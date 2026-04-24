@@ -6,7 +6,7 @@ const statusConfig = {
   pulado:  { label: '⟳ Já enviado',     color: '#d97706', bg: '#fffbeb' },
 };
 
-const ProgressPage = ({ progressData }) => {
+const ProgressPage = ({ progressData, onCancel }) => {
   const logEndRef = useRef(null);
   const { phase, total, current, sent, failed, skipped, log } = progressData || {};
 
@@ -155,6 +155,17 @@ const ProgressPage = ({ progressData }) => {
         <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '16px', textAlign: 'center' }}>
           ⏱️ 1 email a cada 20 segundos · Mantenha esta aba aberta
         </p>
+
+        {onCancel && (
+          <button onClick={onCancel} style={{
+            marginTop: '12px', display: 'block', width: '100%',
+            padding: '8px', borderRadius: '8px',
+            border: '1px solid #e5e7eb', background: 'white',
+            color: '#6b7280', fontSize: '13px', cursor: 'pointer'
+          }}>
+            ✕ Cancelar envio
+          </button>
+        )}
       </div>
 
       <style>{`

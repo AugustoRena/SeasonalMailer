@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import ProgressPage from './ProgressPage';
 import ResultsPage from './ResultsPage';
 
-const MAX_PDF_BYTES = 4 * 1024 * 1024; // 4 MB
+const MAX_PDF_BYTES = 4 * 1024 * 1024;
 const BATCH_SIZE = 1;
-const DELAY_MS = 20000; // 20s between emails
+const DELAY_MS = 20000;
 
-const SendPage = ({ onLogout }) => {
+const SendPage = ({
+  onLogout,
+  sendPhase, setSendPhase,
+  progressData, setProgressData,
+  resultsData, setResultsData,
+  abortRef, onResetSend
+}) => {
   const [pdfFile, setPdfFile] = useState(null);
   const [recipientEmails, setRecipientEmails] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const [currentPage, setCurrentPage] = useState('form');
-  const [progressData, setProgressData] = useState(null);
-  const [resultsData, setResultsData] = useState(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -32,12 +35,18 @@ const SendPage = ({ onLogout }) => {
 
     if (!pdfFile || !recipientEmails || !subject || !body) { alert('Preencha todos os campos obrigatórios'); return; }
 
-    const emails = recipientEmails.split(';').map(e => e.trim()).filter(e => e.length > 0);
+    const emails = recipientEmails.split(';').map(em => em.trim()).filter(em => em.length > 0);
     if (emails.length === 0) { alert('Adicione pelo menos um email'); return; }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalid = emails.filter(e => !emailRegex.test(e));
+    const invalid = emails.filter(em => !emailRegex.test(em));
     if (invalid.length > 0) { alert(`Emails inválidos: ${invalid.join(', ')}`); return; }
+
+    // Cancel any previous send loop and start a new generation
+    abortRef.current += 1;
+    const myGeneration = abortRef.current;
+
+    const isAborted = () => abortRef.current !== myGeneration;
 
     const campaignId = `camp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const siteUrl = window.location.origin;
@@ -46,15 +55,10 @@ const SendPage = ({ onLogout }) => {
     reader.onload = async () => {
       const base64 = reader.result.split(',')[1];
 
-      // ── Step 1: Check for duplicates sent in last 30 days ──
-      setCurrentPage('progress');
-      setProgressData({
-        phase: 'checking',
-        total: emails.length,
-        current: 0, sent: 0, failed: 0, skipped: 0,
-        log: []
-      });
+      setSendPhase('progress');
+      setProgressData({ phase: 'checking', total: emails.length, current: 0, sent: 0, failed: 0, skipped: 0, log: [] });
 
+      // ── Step 1: Duplicate check ──
       let emailsToSend = emails;
       let initialLog = [];
 
@@ -67,34 +71,32 @@ const SendPage = ({ onLogout }) => {
         if (dupRes.ok) {
           const { duplicates } = await dupRes.json();
           if (duplicates.length > 0) {
-            emailsToSend = emails.filter(e => !duplicates.includes(e));
+            emailsToSend = emails.filter(em => !duplicates.includes(em));
             initialLog = duplicates.map(email => ({
-              email,
-              status: 'pulado',
+              email, status: 'pulado',
               reason: 'Email já recebeu nos últimos 30 dias',
               timestamp: new Date().toISOString()
             }));
           }
         }
-      } catch (_err) {
-        // If check fails, proceed with all emails
-      }
+      } catch (_err) { /* proceed with all */ }
+
+      if (isAborted()) return;
 
       const total = emails.length;
       const allResults = [...initialLog];
 
       setProgressData({
-        phase: 'sending',
-        total,
-        current: initialLog.length,
-        sent: 0,
-        failed: 0,
-        skipped: initialLog.length,
+        phase: 'sending', total,
+        current: initialLog.length, sent: 0,
+        failed: 0, skipped: initialLog.length,
         log: [...initialLog]
       });
 
-      // ── Step 2: Send to non-duplicate emails ──
+      // ── Step 2: Send ──
       for (let i = 0; i < emailsToSend.length; i += BATCH_SIZE) {
+        if (isAborted()) return; // stop if user started new send or logged out
+
         const batch = emailsToSend.slice(i, i + BATCH_SIZE);
         const ts = new Date().toISOString();
 
@@ -105,65 +107,66 @@ const SendPage = ({ onLogout }) => {
             body: JSON.stringify({ batch, subject, body, attachmentBase64: base64, attachmentFilename: pdfFile.name, campaignId, siteUrl })
           });
 
+          if (isAborted()) return;
+
           const data = await response.json();
 
           if (!response.ok) {
             batch.forEach(email => allResults.push({ email, status: 'erro', reason: data.error || 'Erro desconhecido', timestamp: ts }));
           } else {
-            data.results.forEach(r => allResults.push({
-              email: r.email,
-              status: r.status,
-              reason: r.error || null,
-              timestamp: r.timestamp
-            }));
+            data.results.forEach(r => allResults.push({ email: r.email, status: r.status, reason: r.error || null, timestamp: r.timestamp }));
           }
         } catch (_err) {
+          if (isAborted()) return;
           batch.forEach(email => allResults.push({ email, status: 'erro', reason: 'Falha de conexão com o servidor', timestamp: ts }));
         }
 
-        const sent = allResults.filter(r => r.status === 'enviado').length;
-        const failed = allResults.filter(r => r.status === 'erro').length;
+        const sent    = allResults.filter(r => r.status === 'enviado').length;
+        const failed  = allResults.filter(r => r.status === 'erro').length;
         const skipped = allResults.filter(r => r.status === 'pulado').length;
 
-        setProgressData({
-          phase: 'sending',
-          total,
-          current: skipped + sent + failed,
-          sent,
-          failed,
-          skipped,
-          log: [...allResults]
-        });
+        setProgressData({ phase: 'sending', total, current: skipped + sent + failed, sent, failed, skipped, log: [...allResults] });
 
         if (i + BATCH_SIZE < emailsToSend.length) {
           await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+          if (isAborted()) return;
         }
       }
 
-      const finalSent = allResults.filter(r => r.status === 'enviado').length;
-      const finalFailed = allResults.filter(r => r.status === 'erro').length;
+      if (isAborted()) return;
+
+      const finalSent    = allResults.filter(r => r.status === 'enviado').length;
+      const finalFailed  = allResults.filter(r => r.status === 'erro').length;
       const finalSkipped = allResults.filter(r => r.status === 'pulado').length;
 
-      setResultsData({
-        summary: { total, sent: finalSent, failed: finalFailed, skipped: finalSkipped },
-        results: allResults
-      });
-      setCurrentPage('results');
+      setResultsData({ summary: { total, sent: finalSent, failed: finalFailed, skipped: finalSkipped }, results: allResults });
+      setSendPhase('results');
     };
 
     reader.readAsDataURL(pdfFile);
   };
 
-  if (currentPage === 'progress') {
-    return <ProgressPage progressData={progressData} />;
+  // ── Render ──
+
+  if (sendPhase === 'progress') {
+    return (
+      <ProgressPage
+        progressData={progressData}
+        onCancel={() => {
+          if (window.confirm('Cancelar o envio em andamento?')) {
+            onResetSend();
+          }
+        }}
+      />
+    );
   }
 
-  if (currentPage === 'results') {
+  if (sendPhase === 'results') {
     return (
       <ResultsPage
         resultsData={resultsData}
         onBack={() => {
-          setCurrentPage('form');
+          onResetSend();
           setPdfFile(null);
           setRecipientEmails('');
           setSubject('');
@@ -173,7 +176,7 @@ const SendPage = ({ onLogout }) => {
     );
   }
 
-  const emailCount = recipientEmails.split(';').filter(e => e.trim()).length;
+  const emailCount = recipientEmails.split(';').filter(em => em.trim()).length;
 
   return (
     <div className="send-page">
@@ -200,11 +203,9 @@ const SendPage = ({ onLogout }) => {
             <div className="section-title">👥 Lista de Destinatários</div>
             <div className="form-group">
               <label className="form-label">Emails (separados por ";")</label>
-              <textarea
-                className="textarea"
+              <textarea className="textarea"
                 placeholder="email1@example.com; email2@example.com; email3@example.com"
-                value={recipientEmails}
-                onChange={(e) => setRecipientEmails(e.target.value)}
+                value={recipientEmails} onChange={(e) => setRecipientEmails(e.target.value)}
               />
               <div className="char-count">{emailCount} email(s)</div>
             </div>
