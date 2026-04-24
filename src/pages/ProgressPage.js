@@ -12,7 +12,6 @@ const ProgressPage = ({ progressData }) => {
 
   const remaining = total - current;
   const progress = current > 0 ? Math.min(Math.round((current / total) * 100), 99) : 0;
-  const estimatedSecondsLeft = (total - skipped - current + (total - skipped - current > 0 ? 0 : 0)) * 20;
   const pendingSends = (total - skipped) - sent - failed;
   const estSeconds = pendingSends * 20;
   const estMin = Math.floor(estSeconds / 60);
