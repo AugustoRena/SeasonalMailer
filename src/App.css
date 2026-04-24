@@ -683,3 +683,10 @@ tr:hover {
   border-bottom-color: #2563eb;
   font-weight: 500;
 }
+
+/* ── Status badges extras ── */
+.status-badge.pulado {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}

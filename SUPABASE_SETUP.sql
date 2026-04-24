@@ -22,3 +22,23 @@ create policy "Service key full access"
   on email_events
   using (true)
   with check (true);
+
+-- ── Tabela para controle de envios (deduplicação 30 dias) ──
+
+create table if not exists email_sends (
+  id          bigserial primary key,
+  email       text not null,
+  campaign_id text,
+  sent_at     timestamptz not null default now()
+);
+
+create index if not exists idx_email_sends_email     on email_sends(email);
+create index if not exists idx_email_sends_sent_at   on email_sends(sent_at);
+create index if not exists idx_email_sends_email_date on email_sends(email, sent_at);
+
+alter table email_sends enable row level security;
+
+create policy "Service key full access"
+  on email_sends
+  using (true)
+  with check (true);

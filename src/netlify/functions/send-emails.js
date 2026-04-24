@@ -98,6 +98,23 @@ export const handler = async (event) => {
       }
 
       await transporter.sendMail(mailOptions);
+
+      // Record send in Supabase for duplicate checking
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+      if (supabaseUrl && supabaseKey) {
+        await fetch(`${supabaseUrl}/rest/v1/email_sends`, {
+          method: 'POST',
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal'
+          },
+          body: JSON.stringify({ email: recipient, campaign_id: campaignId || null, sent_at: new Date().toISOString() })
+        }).catch(() => {}); // Non-blocking — don't fail send if logging fails
+      }
+
       results.push({ email: recipient, status: 'enviado', timestamp: new Date().toISOString() });
     } catch (err) {
       results.push({ email: recipient, status: 'erro', error: err.message, timestamp: new Date().toISOString() });
